@@ -1,0 +1,52 @@
+{
+  "model": "LinearSVC",
+  "parameter": 10.0,
+  "features": {
+    "lowercase": true,
+    "max_features": 20000,
+    "ngram_range": [
+      1,
+      1
+    ],
+    "min_df": 2,
+    "sublinear_tf": true,
+    "norm": "l2",
+    "input": "content",
+    "encoding": "utf-8",
+    "decode_error": "strict",
+    "strip_accents": null,
+    "analyzer": "word",
+    "token_pattern": "(?u)\\b\\w\\w+\\b",
+    "stop_words": null,
+    "max_df": 1.0,
+    "binary": false,
+    "use_idf": true,
+    "smooth_idf": true,
+    "dtype": "<class 'numpy.float64'>"
+  },
+  "mode": "full",
+  "fixed_linear_model": "LinearSVC",
+  "fixed_linear_parameter": 10.0,
+  "seed42_metrics": {
+    "group": "control",
+    "seed": 42,
+    "variant": "sublinear",
+    "model": "LinearSVC",
+    "parameter": 10.0,
+    "mode": "full",
+    "train_accuracy": 0.999830335934849,
+    "train_macro_f1": 0.9998306519898392,
+    "val_accuracy": 0.9369063772048847,
+    "val_macro_f1": 0.9370619219663547,
+    "fit_seconds": 1.64834119999432,
+    "feature_seconds": 2.041056000001845,
+    "elapsed_seconds": 3.7240698999958113,
+    "feature_plus_fit_seconds": 3.689397199996165,
+    "features": 20000,
+    "train_nnz": 806221,
+    "train_density": 0.006839336613505259,
+    "validation_density": 0.006803561736770692,
+    "iterations": "322",
+    "status": "ok"
+  }
+}

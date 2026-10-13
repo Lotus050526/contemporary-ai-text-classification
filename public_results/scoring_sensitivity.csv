@@ -1,0 +1,3 @@
+evaluation,samples,accuracy,macro_f1,errors,excluded_samples
+original_main_validation,1474,0.9369063772048847,0.9370619219663547,93,0
+posthoc_excluding_body_overlap,1469,0.9373723621511232,0.9375286273281039,92,5

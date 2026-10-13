@@ -1,0 +1,17 @@
+{
+  "result_origin": "原Windows实际运行",
+  "python": "3.14.3",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "versions": {
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "scipy": "1.18.1",
+    "scikit-learn": "1.9.1",
+    "matplotlib": "3.11.2",
+    "joblib": "1.6.0",
+    "threadpoolctl": "3.7.0",
+    "pypdf": "6.20.1"
+  },
+  "thread_limit": 2,
+  "limitation": "跨操作系统、版本、CPU/BLAS的数值、耗时和预测可能不同；不保证逐条完全一致"
+}

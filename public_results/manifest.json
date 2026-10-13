@@ -1,0 +1,65 @@
+{
+  "origin": "原Windows运行，提交前只整理",
+  "files": [
+    {
+      "path": "audit_sensitivity_summary.md",
+      "bytes": 2183,
+      "sha256": "8056947a2ec108c229fb21e91e4cd9ec393005a04d25dc34ae557ef7724e5c79"
+    },
+    {
+      "path": "confusion_matrix.csv",
+      "bytes": 282,
+      "sha256": "9e0407e831005c11e4c477bc429856ebccb85c5b5176b7dcce75ada99543371a"
+    },
+    {
+      "path": "confusion_matrix.png",
+      "bytes": 68122,
+      "sha256": "85dfdc5158fee40fd3d7dbb7424c539490acdb7c98871a1030b3a53b778f4a5a"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 496,
+      "sha256": "b07f523e942d32e4696bbc4b0e97af9db48d177833cffc385491398ffe58e265"
+    },
+    {
+      "path": "experiments.csv",
+      "bytes": 3775,
+      "sha256": "0b51f94198184b095e1c8a735720bfbc885691d9a6b4348d76010d28f27f68d3"
+    },
+    {
+      "path": "locked_scheme.json",
+      "bytes": 1369,
+      "sha256": "7c237a03416628adb151e05d18dabd7a6075703ffa8b9a262cef46c1c4ad45b5"
+    },
+    {
+      "path": "mlp_curves.png",
+      "bytes": 101111,
+      "sha256": "fc62d5619a14cb0420eed681e9767bf9f1cbe5b7f96e3af32cc8c6f10ea157a1"
+    },
+    {
+      "path": "mlp_epochs.csv",
+      "bytes": 5325,
+      "sha256": "6bd8b82585f13f480ab40db5775383bf018c601c6973d44603fdc6cb23df5f79"
+    },
+    {
+      "path": "per_class_metrics.csv",
+      "bytes": 935,
+      "sha256": "ec21fc7a10b811e6eca7185b2b4c2a48dc5bc12cbfd155635558a43d9de4971d"
+    },
+    {
+      "path": "robustness_summary.csv",
+      "bytes": 1048,
+      "sha256": "67fb74525794694a7d089971615a028ebe75147e79bbcb8ef2641ccb158e4cd7"
+    },
+    {
+      "path": "scoring_sensitivity.csv",
+      "bytes": 216,
+      "sha256": "a73eb58b2f85277f8cbae9a82f3b6786410d4b1845f2d20b8c595e4f0eff67b0"
+    },
+    {
+      "path": "three_split_results.csv",
+      "bytes": 4649,
+      "sha256": "3a79c3b9c60170912613ab8bc34b1d435424ee888c3754acf28a35c01df92583"
+    }
+  ]
+}
