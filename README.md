@@ -1,65 +1,129 @@
-# 《当代人工智能》实验一
+# 基于 TF-IDF 的英文文本分类：模型比较与特征分析
 
-本项目实际使用 Windows、PowerShell、Python 3.14.3 和 `.venv` 运行。依赖的**实际验证版本**在 `requirements.txt`。不需要激活虚拟环境，直接使用它的 Python 路径即可。
+本项目面向英文文本十分类任务，比较朴素贝叶斯、线性支持向量机和逻辑回归，并通过特征对照、邮件头部处理、训练曲线与错误分析，研究分类性能及其局限。
 
-**运行必须提供的课程文件只有 `train_data.csv` 和 `test_data_unlabeled.csv`。** 从老师提供的材料取得这两个文件，原样放在项目根目录，与main.py同级。前者字段顺序为text、target（本次7368条），后者只有text（本次2457条）。不要改写或公开上传原始CSV。所有命令在项目根目录的VSCode PowerShell终端运行。
+## 1. 项目概述与研究问题
 
-`实验一要求.pdf` 仅为可选作业记录：存在时读取并记录哈希，不存在时记录“未提供要求PDF”并继续，读取失败也只记录警告。`draft_main.py`、`TUNING.md` 是可选课程材料，不属于运行必需文件。pypdf仅用于可选PDF记录，可不安装；其他依赖用于数值、稀疏矩阵、模型、绘图和保存。
+项目以稀疏TF-IDF为基础，围绕以下问题开展实验：
 
-`public_results/` 保存原Windows运行的真实结果。其他操作系统、Python/依赖版本、CPU/BLAS或求解实现可能产生耗时、数值和个别预测差异，固定种子不能保证跨版本逐条预测完全一致。新环境结果应单独标注，不能覆盖原公开证据来冒充同一次运行。
+- 相同特征与数据划分下，不同分类器及正则化参数如何影响性能？
+- 词频压缩、短语特征和归一化能否改善分类？
+- 分类器是否依赖邮件头部的来源信息？
+- 训练损失与macro-F1是否同步变化，错分样本反映了哪些局限？
+
+模型选择以主验证集macro-F1为依据，同时记录accuracy、训练表现、特征数与耗时。
+
+## 2. 数据格式与划分
+
+将两份CSV放在项目根目录，与 `main.py` 同级：
+
+| 文件 | 字段 | 样本数 | 用途 |
+|---|---|---:|---|
+| `train_data.csv` | `text,target` | 7368 | 训练与验证，标签为0–9 |
+| `test_data_unlabeled.csv` | `text` | 2457 | 方案确定后的预测 |
+
+实验使用现有CSV文件，文本包含邮件或新闻组消息头。现有材料未明确标注原始数据集名称及公开下载来源，类别保留数字标签。
+
+有标签数据按80%/20%分层划分，`stratify=target`、`random_state=42`，得到5894条训练样本和1474条验证样本。划分保存原始数据的零基索引，清洗过程保持文本与标签对齐。
+
+词表、IDF等统计量只在训练子集拟合，验证集仅执行transform。验证集用于比较候选方案；锁定后在种子21、84的分层划分上复跑固定方案与对照，记录均值和样本标准差，不再据此调整参数。无标签测试集不参与选型，仅在最终模型重训后执行transform和predict；没有可计算的测试准确率。
+
+## 3. 环境配置与运行方法
+
+现有结果来自Windows 11、Python 3.14.3、PowerShell和 `.venv`，BLAS线程限制为2。实际使用的依赖版本为：
+
+| 依赖 | 版本 | 依赖 | 版本 |
+|---|---|---|---|
+| numpy | 2.5.4 | pandas | 3.0.6 |
+| scipy | 1.18.1 | scikit-learn | 1.9.1 |
+| matplotlib | 3.11.2 | joblib | 1.6.0 |
+| threadpoolctl | 3.7.0 | pypdf | 6.20.1 |
+
+版本固定在 [requirements.txt](requirements.txt)，原运行环境记录在 [environment.json](public_results/environment.json)。pypdf仅用于可选PDF附件记录，缺少附件或该工具不影响训练流程。数据输入只需要上述两个CSV。
+
+在项目根目录的VSCode PowerShell终端运行；已有 `.venv` 时跳过创建步骤，无需激活环境。
 
 ```powershell
-# 已有 .venv 时跳过创建步骤
 py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-# 完整实验：数据检查、9 组基础模型、5 组对照、2 个额外划分、30 轮 MLP
+
+# 完整实验：候选模型、特征对照、三划分评估与30轮MLP
 .\.venv\Scripts\python.exe main.py experiment --epochs 30
-# 使用本项目已公开的锁定方案；全部有标签数据重拟合，测试只transform/predict
+
+# 按已锁定配置重训全部有标签数据，并生成最终预测
 .\.venv\Scripts\python.exe main.py predict --config public_results/locked_scheme.json --output prediction.csv
-# 检查保存模型、训练子集词表/IDF、指标、最佳 MLP 轮和预测文件
+
+# 核对完整实验生成的模型、指标与预测产物
 .\.venv\Scripts\python.exe verify_results.py
-# 事后评分敏感性、公开证据和github_upload整理；不训练模型
-.\.venv\Scripts\python.exe prepare_submission.py
-# 泄露核查：按原配置重放26组、训练标签打乱负对照、重复/引用与预测顺序检查
-.\.venv\Scripts\python.exe leakage_audit.py
 ```
 
-只需按锁定方案预测时，安装环境、放置两个CSV后可直接运行上述predict命令，无需重新选型。完整experiment命令复现候选比较，其他环境可能选出不同候选；predict显式使用公开配置可以固定方案，但仍不能保证逐条预测跨环境一致。这些复现命令会产生新结果；本次提交前整理没有执行训练或调参。
+若只需使用已锁定方案，安装环境并放置两个CSV后，可直接运行predict命令。输出 `prediction.csv` 为2457行、单列、无表头、无索引的0–9整数，保持测试CSV的原始顺序。
 
-verify_results.py需要完整实验生成的私有模型、划分和预测。深入审计会重放模型，属于可选检查，不是训练必需步骤。已有审计目录应保留备份；--reuse-replay仅适用于保有该次审计模型的本地环境。公开上传不携带私有results或模型，只有公开汇总时不能直接运行深度审计。prepare_submission.py需要划分和最佳逐条验证预测；没有历史深入审计时会注明证据缺失，不伪造负对照结论。
+不同操作系统、Python或依赖版本、CPU/BLAS及浮点计算实现可能导致耗时、指标和个别预测差异。固定种子与参数有助于复现，但不保证跨版本逐条预测完全一致。完整实验可能在新环境选出不同候选；predict命令显式使用已有锁定配置。
 
-最终文件为根目录 `prediction.csv`：无表头、无索引，每行一个 0–9 标签，与测试数据行序一致。`predictions.csv` 是课程示例，程序不读取它作为标签或覆盖它；`results/final_predictions.csv` 保留早先运行的最终预测。无标签测试集不能计算准确率，程序也不以其内容选择模型。预测与实验分开执行，复现无需手工修改代码。再次执行实验会覆盖同名结果并向日志追加记录；需要保留一次运行时先备份 `results/`。`draft_main.py` 仅为老师示例，直接拟合全标签数据，不属于本项目验证实验入口，不应拿其全量特征再划分验证。
+## 4. 实验设计
 
-划分固定为 80%/20%，分层标签，主划分种子 42，保存原始 CSV **数据记录的零基索引**。`csv_record_number` 是计入表头的记录序号，因文本包含换行，它不是文件的物理行号。所有特征都在训练子集拟合，验证集仅 transform。先确定验证 macro-F1 为选型指标；候选分数相同取预声明顺序中先出现的方案。先对基础模型调参，在最优基础线性模型的固定参数上分别改变 sublinear_tf、ngram_range、norm 或头部处理；不把多个改动组合后再搜索。最终在这些有限候选中按主验证 macro-F1 锁定方案。MLP 用于学习曲线演示，不参与最终线性方案选型。锁定后在 21、84 上复跑全部主要对照，不再调参。
+基础TF-IDF设置为 `lowercase=True`、`max_features=20000`、`ngram_range=(1,1)`、`min_df=2`、`sublinear_tf=False`、`norm="l2"`。所有主要实验使用相同划分，矩阵保持稀疏形式。特征构建和分类器fit分别计时，基础候选共享一次特征构建。
 
-基础 TF-IDF 是 lowercase=True、max_features=20000、unigram、min_df=2、sublinear_tf=False、norm=l2；其他参数及每个分类器全部实际参数在 `results/configs/`。矩阵始终保持稀疏；MLP 的隐藏层和输出概率是小型稠密数组，不把整个 TF-IDF 矩阵稠密化。BLAS 线程固定 2，避免小型实验的线程过度开销。计时区分特征 fit/transform 与分类器 fit；基础模型共享同一特征矩阵，`feature_seconds` 是共享阶段耗时，不能对 9 组重复累加。`feature_plus_fit_seconds` 表示独立构建该方案的阶段耗时。
+分类器比较包括MultinomialNB的 `alpha=[0.1,0.5,1.0]`，以及LinearSVC、LogisticRegression的 `C=[0.1,1.0,10.0]`。LR使用lbfgs、最多2000次迭代；LinearSVC初始上限为20000，收敛警告时只增加求解预算并保留记录。
 
-LinearSVC 是线性 SVM，使用 LIBLINEAR、默认 squared_hinge 损失和 one-vs-rest 多分类；老师的 SVC(kernel="linear") 使用 LIBSVM、hinge 形式的 C-SVC 和 one-vs-one 多分类。两者优化实现、损失、多分类策略不同，不能视为完全相同的模型；LinearSVC 更适合本次高维稀疏文本。逻辑回归使用 lbfgs，max_iter=2000；LinearSVC 初始 max_iter=20000，保存 n_iter_ 和警告。若触发收敛警告，自动只将迭代上限增至 5 倍重拟合一次，不改变 C 或特征；表中保存首次警告、重试次数、最终收敛状态，fit_seconds 包含两次求解。TUNING.md 中关于 SVM 与逻辑回归 C 含义相反的措辞不准确：二者 C 增大一般都意味着较弱的正则化约束。
+LinearSVC使用LIBLINEAR、squared_hinge损失和one-vs-rest多分类；`SVC(kernel="linear")` 使用LIBSVM、C-SVC和one-vs-one。二者都是线性SVM，但优化实现与多分类策略不同。
 
-邮件头仅从第一行解析到第一个空行，接受合法字段和折行，要求 From 和 Subject 存在。失败就保留原文本，成功率和失败样例明确输出。B 组保留 Subject，按 `main.py` 的 SOURCE 集合去掉来源/身份/线程标识字段，保留 Lines、Keywords、Summary 等其他字段；C 组删去成功解析的整个头部。不会全局删除正文中的冒号行。正文中的签名和引用仍可能带来源信息，B 组也保留客户端字段，所以这是部分来源线索的敏感性分析，不是彻底匿名化。实际换行与字面量反斜杠转义分别检查，原文不会经过 unicode_escape。
+在最优基础线性模型的固定参数上，分别改变单一因素：次线性词频、unigram+bigram、不归一化，以及邮件头部处理。头部对照分为完整文本、保留Subject并去除来源字段、仅正文三组，分别在训练子集拟合词表与IDF。解析只处理开头到第一个空行的邮件头，失败原样保留，正文中的冒号与引用保留。
 
-MLP 5000 维 TF-IDF、单隐藏层 (50,)、Adam，用 partial_fit 每次训练一个 epoch。最多 50 轮，命令默认 30 轮；每轮结束后用固定的该轮模型重新预测完整训练/验证集，计算样本平均交叉熵、accuracy 和 macro-F1。概率列按 `model.classes_=[0,1,...,9]`，log_loss 的 labels 使用同一数组；总交叉熵=平均交叉熵×样本数。内部 loss_ 是批次更新过程中的损失并含正则项，单独保存，不能和重新评估的交叉熵混同。最优轮按验证 macro-F1 选择并深复制保存，训练仍执行全部预定轮数。不同模型不同定义的损失不作数值比较。
+MLP使用至多5000维TF-IDF、单隐藏层 `(50,)` 和Adam，通过partial_fit逐轮训练，默认30轮、最多50轮。每轮结束后固定该轮模型，重新计算训练与验证平均交叉熵、accuracy和macro-F1；保存验证macro-F1最高轮的模型副本。概率列对应 `classes_=[0,...,9]`，总交叉熵等于平均交叉熵乘样本数。内部 `loss_` 单独记录，不与重新评估的交叉熵混同。
 
-主要产物：
+## 5. 主要结果
 
-- `results/experiments.csv`：每个模型/参数/划分的训练与验证指标、耗时、特征数、密度、警告。
-- `data_audit.json`、`*_escape_samples.json`、`header_samples.json`：数据检查和真实清洗样例。
-- `split_42.csv`、`split_21.csv`、`split_84.csv`、`split_duplicate_overlap.json`：固定索引和跨子集重复检查。
-- `locked_scheme.json`、`protocol.json`、`environment.json`、`configs/`：锁定方案、预声明指标、数据哈希与依赖环境。
-- `confusion_matrix.csv/png`、`per_class_metrics.csv`、`misclassified.csv`、`representative_errors.csv`：最佳方案错误诊断。
-- `class_weight_words.csv`：类别正负权重词，是模型关联线索，不能作为因果解释。
-- `error_term_contributions.csv`：5 条代表性错分中推高预测类相对真实类分数的词贡献；需结合原文理解。
-- `robustness_summary.csv`：3 个划分的均值、样本标准差（ddof=1），划分之间有重叠，不是独立外部测试或置信区间。
-- `mlp_epochs.csv`、`mlp_curves.png`、`mlp_best_epoch.json`、`mlp_best.joblib`：逐轮真实记录和最佳模型副本。
-- `run.log`、`failure.json`（若失败）、`completion.json`：运行记录；警告也保存在对应实验表里。
-- `run_notes.md`、`analysis_notes.md`、`verification.json`：修正过程、真实内容分析笔记和产物复核结果。`results_initial_parser/` 保留首次运行的旧解析规则结果，正式结果只在 `results/`。
-- `best_validation_predictions.csv`、`validation_predictions/`、`models/`：逐条验证预测、逐组模型及所用划分，后续运行会自动保存。内存共享特征绑定清洗文本、索引与配置，错误缓存会被拒绝。
-- `leakage_audit.md`：本次泄露核查结论和代码位置；`leakage_audit_run/` 是独立重放、拟合追踪、负对照、重复/引用和预测顺序证据，旧实验表与锁定方案保留。首次执行审计创建此目录；已有成功重放时用 `leakage_audit.py --reuse-replay` 复核，不重复拟合负对照。根目录 `prediction.csv` 被 gitignore 排除。
+下表为主划分的验证结果；NB和LR展示各自最优参数，LinearSVC各对照固定C=10。除MLP外，表中方案均使用20000维特征。
 
-课程数据、含文本的结果和模型默认被 `.gitignore` 排除，避免公开课程材料。本阶段不生成最终 PDF、压缩包或仓库链接。joblib 文件只加载本项目自己产生的可信文件。
+| 模型或方案 | 验证accuracy | 验证macro-F1 |
+|---|---:|---:|
+| MultinomialNB，alpha=0.1 | 0.9206 | 0.9213 |
+| LogisticRegression，C=10 | 0.9315 | 0.9319 |
+| LinearSVC，基础特征 | 0.9335 | 0.9339 |
+| LinearSVC，sublinear_tf=True | **0.9369** | **0.9371** |
+| LinearSVC，unigram+bigram | 0.9247 | 0.9253 |
+| LinearSVC，不归一化 | 0.9193 | 0.9193 |
+| LinearSVC，保留Subject、去来源字段 | 0.9349 | 0.9352 |
+| LinearSVC，仅正文 | 0.9077 | 0.9081 |
+| MLP，最优第16轮 | 0.9199 | 0.9203 |
 
-提交前另做了**事后评分敏感性检查**：只根据主训练/验证文本的非空规范化正文重合标记5条验证样本，利用已保存最佳验证预测另外评分，不读取测试文本来决定标记，不重训、不改数据、主指标或选型。该检查不能排除全部引用或语义近重复偏差。对比见public_results/scoring_sensitivity.csv。
+锁定方案为完整文本、unigram、sublinear_tf=True、L2、LinearSVC C=10。其主验证集错分93条，训练macro-F1约0.9998；三划分验证macro-F1为 **0.932527±0.006691**。去来源字段方案三划分均值为0.933818、标准差为0.001505，但锁定方案仍依据预先指定的主划分选择。
 
-public_results/只放数值表、曲线、混淆矩阵、每类指标、锁定配置、原环境版本及简洁审计/敏感性摘要；没有原始文本、邮箱、姓名、数据、模型、本机绝对路径或逐样本预测。原Windows锁定方案的主验证accuracy=0.9369063772、macro-F1=0.9370619220，三划分macro-F1均值±样本标准差为0.932527±0.006691；这些原主指标没有被敏感性分数替换。
+完整参数、训练表现和耗时见 [主实验结果表](public_results/experiments.csv)；稳健性结果见 [三划分逐组结果](public_results/three_split_results.csv) 与 [均值和标准差](public_results/robustness_summary.csv)。逐类表现见 [每类指标](public_results/per_class_metrics.csv) 和 [混淆矩阵](public_results/confusion_matrix.png)。
 
-github_upload/是适合手动上传的代码、依赖说明、README、.gitignore及public_results副本；不含原始课程数据、老师PDF、示例/最终预测、模型或检查ZIP。允许提交public_results，私有results继续被gitignore排除。程序不会自动发布仓库或生成最终实验PDF。
+## 6. 结果分析与局限
+
+次线性词频在主划分提高了macro-F1，但种子21下几乎没有改善。固定20000维预算时，加入bigram分数下降且特征构建更慢，可能与短语占用词表预算有关，不能推断短语特征普遍无效。不归一化也降低了分数；固定C时特征尺度会改变有效正则化，差异不能全部归因于归一化。
+
+去来源字段没有降低三划分平均性能；删除整个头部则明显下降。由于后者同时删除Subject等内容，这一对照不能单独量化标题作用。正文签名与引用仍可能带来源线索，分数变化本身也不能证明数据泄露。
+
+MLP第16轮验证交叉熵为0.2965、macro-F1为0.9203；到第30轮交叉熵进一步降至0.2674，macro-F1却降至0.9163。概率损失与离散分类指标没有同步变化，因此按macro-F1保存第16轮，而不是直接使用最后一轮。真实记录见 [逐轮指标](public_results/mlp_epochs.csv) 和 [训练曲线](public_results/mlp_curves.png)。
+
+每类指标中，标签2的F1为0.8503，标签7为0.8797，低于多数类别。错误分析显示部分文本包含交叉主题，签名中的非核心词也会参与线性打分。类别权重和词贡献用于解释模型的关联线索，不作为因果解释或官方类别名称。
+
+**评分敏感性分析**只依据主训练文本与验证文本的非空规范化正文重合，标记5条验证样本，并使用已保存的最佳验证预测另外评分：
+
+| 评价范围 | 样本数 | accuracy | macro-F1 | 错分数 |
+|---|---:|---:|---:|---:|
+| 主要验证结果 | 1474 | 0.936906 | 0.937062 | 93 |
+| 排除5条正文重合样本后的补充评分 | 1469 | 0.937372 | 0.937529 | 92 |
+
+该分析不重训、不替换主指标，也不参与选型。全文完全重复为0，但正文重合和跨集引用说明随机文本划分中存在关联样本；排除这5条不能消除全部引用、作者或语义近重复偏差。训练标签打乱负对照的accuracy为0.1065、macro-F1为0.1061，接近随机水平，也不能单独证明完全没有泄露。三划分有样本重叠，其标准差不是独立测试的置信区间。
+
+详细补充评分见 [评分敏感性表](public_results/scoring_sensitivity.csv)，方法与审计摘要见 [分析摘要](public_results/audit_sensitivity_summary.md)。
+
+## 7. 项目文件说明
+
+| 文件或目录 | 内容 |
+|---|---|
+| [main.py](main.py) | 数据检查、固定划分、模型比较、特征对照、MLP曲线及最终预测入口 |
+| [requirements.txt](requirements.txt) | 实际使用的依赖版本 |
+| [verify_results.py](verify_results.py) | 基于完整实验产物核对模型、验证指标与预测格式 |
+| [leakage_audit.py](leakage_audit.py) | 固定配置重放、拟合来源核查、重复诊断与标签打乱负对照 |
+| [prepare_submission.py](prepare_submission.py) | 利用保存预测计算评分敏感性，并导出结果摘要 |
+| `results/` | 运行生成的配置、日志、划分索引、逐条预测、模型与错误分析 |
+| [public_results/](public_results/) | 实验表、三划分结果、MLP指标与曲线、混淆矩阵、锁定配置及分析摘要 |
+
+评分敏感性分析需要主划分和最佳验证预测；模型核验与深入审计需要相应的完整运行产物。深入审计会重新拟合固定方案及负对照，评分敏感性分析仅重新计算已有预测的指标。
